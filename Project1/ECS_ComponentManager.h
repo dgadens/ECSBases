@@ -1,79 +1,59 @@
 #pragma once
 
 #include <unordered_map>
-#include <typeindex>
-#include <memory>
 #include "ECS_Component.h"
 #include "ECS_ComponentArray.h"
 
 class ComponentManager
 {
 private:
-	// Map from type index pointer to a component type
-	std::unordered_map<std::type_index, ComponentType> m_ComponentTypes;
-
 	// Map from type index pointer to a component array
-	std::vector<std::shared_ptr<IComponentArray>> m_ComponentArrays;
-
-	// The component type to be assigned to the next registered component
-	ComponentType m_NextComponentType;
+	std::vector<IComponentArray*> m_ComponentArrays;
 
 	// Convenience function to get the statically casted pointer to 
 	//the ComponentArray of type T.
 	template<typename T>
-	std::shared_ptr<ComponentArray<T>> GetComponentArray()
+	ComponentArray<T>* GetComponentArray(uint32_t id)
 	{
-		std::type_index typeIndex(typeid(T));
-		auto componentType = m_ComponentTypes[typeIndex];
-		return std::static_pointer_cast<ComponentArray<T>>(m_ComponentArrays[componentType]);
+		return (ComponentArray<T>*)m_ComponentArrays[id];
 	}
 
 public:
-	ComponentManager()
-		: m_NextComponentType(0)
-	{}
-
-	template<typename T>
-	void RegisterComponent()
+	~ComponentManager()
 	{
-		std::type_index typeIndex(typeid(T));
-
-		// Add this component type to the component type map
-		m_ComponentTypes.insert({ typeIndex, m_NextComponentType });
-
-		// Create a ComponentArray pointer and add it to the component arrays map
-		m_ComponentArrays.push_back(std::make_shared<ComponentArray<T>>());
-
-		// Increment the value so that the next component registered will be different
-		++m_NextComponentType;
+		for (auto& c : m_ComponentArrays)
+			delete(c);
+		m_ComponentArrays.clear();
 	}
 
 	template<typename T>
-	ComponentType GetComponentType()
+	uint32_t RegisterComponent()
 	{
-		std::type_index typeIndex(typeid(T));
-		return m_ComponentTypes[typeIndex];
+		// Create a ComponentArray pointer and add it to the 
+		//component arrays map
+		m_ComponentArrays.push_back(new ComponentArray<T>());
+		return m_ComponentArrays.size() - 1;
 	}
 
 	template<typename T>
-	void AddComponent(ECS_Entity entity, T& component)
+	void AddComponent(ECS_Entity entity, T& component, uint32_t id)
 	{
 		// Add a component to the array for an entity
-		GetComponentArray<T>()->InsertData(entity, component);
+		GetComponentArray<T>(id)->InsertData(entity, component);
 	}
 
 	template<typename T>
-	void RemoveComponent(ECS_Entity entity)
+	void RemoveComponent(ECS_Entity entity, uint32_t id)
 	{
 		// Remove a component from the array for an entity
-		GetComponentArray<T>()->RemoveData(entity);
+		GetComponentArray<T>(id)->RemoveData(entity);
 	}
 
 	template<typename T>
-	T& GetComponent(ECS_Entity entity)
+	T& GetComponent(ECS_Entity entity, uint32_t id)
 	{
 		// Get a reference to a component from the array for an entity
-		return GetComponentArray<T>()->GetData(entity);
+		return GetComponentArray<T>(id)->GetData(entity);
 	}
 
 	void EntityDestroyed(ECS_Entity entity)

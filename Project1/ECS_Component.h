@@ -10,8 +10,9 @@ struct UniformMoveComponent
 	float x, y;
 };
 
-struct AcceleratedMoveComponent
+struct AcceleratedMoveComponent 
 {
 	float x, y, accel;
 };
+
 

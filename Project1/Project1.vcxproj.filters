@@ -21,6 +21,9 @@
     <ClCompile Include="ECS_SystemManager.h">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ECS_Component.h">
@@ -43,6 +46,9 @@
     </ClInclude>
     <ClInclude Include="ECS_System.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

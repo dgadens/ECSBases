@@ -12,19 +12,12 @@ private:
 	std::unique_ptr<SystemManager> m_SystemManager;
 
 public:
-	void Init()
+	ECS_Orchestrator()
 	{
 		// Create pointers to each manager
 		m_ComponentManager = std::make_unique<ComponentManager>();
 		m_EntityManager = std::make_unique<EntityManager>();
 		m_SystemManager = std::make_unique<SystemManager>();
-	}
-
-	void Term()
-	{
-		m_SystemManager = nullptr;
-		m_EntityManager = nullptr;
-		m_ComponentManager = nullptr;
 	}
 
 	// Entity methods
@@ -59,21 +52,21 @@ public:
 
 	// Component methods
 	template<typename T>
-	void RegisterComponent()
+	uint32_t RegisterComponent()
 	{
-		m_ComponentManager->RegisterComponent<T>();
+		return m_ComponentManager->RegisterComponent<T>();
 	}
 
 	template<typename T>
-	void AddComponent(ECS_Entity entity, T& component)
+	void AddComponent(ECS_Entity entity, T& component, uint32_t id)
 	{
 		//if already contains component don't make nothing
-		if (!ContainsComponent<T>(entity))
+		if (!ContainsComponent<T>(entity, id))
 		{
-			m_ComponentManager->AddComponent<T>(entity, component);
+			m_ComponentManager->AddComponent<T>(entity, component, id);
 
 			auto signature = m_EntityManager->GetSignature(entity);
-			signature.set(m_ComponentManager->GetComponentType<T>(), true);
+			signature.set(id, true);
 			m_EntityManager->SetSignature(entity, signature);
 			//update systems
 			m_SystemManager->EntitySignatureChanged(entity, signature);
@@ -81,26 +74,26 @@ public:
 		else
 		{
 			//if already exist only set values
-			m_ComponentManager->GetComponent<T>(entity) = component;
+			m_ComponentManager->GetComponent<T>(entity, id) = component;
 		}
 	}
 
 	template<typename T>
-	bool ContainsComponent(ECS_Entity entity)
+	bool ContainsComponent(ECS_Entity entity, uint32_t id)
 	{
 		auto signature = m_EntityManager->GetSignature(entity);
-		return signature[m_ComponentManager->GetComponentType<T>()];
+		return signature[id];
 	}
 
 	template<typename T>
-	void RemoveComponent(ECS_Entity entity)
+	void RemoveComponent(ECS_Entity entity, uint32_t id)
 	{
-		if (ContainsComponent<T>(entity))
+		if (ContainsComponent<T>(entity, id))
 		{
 			m_ComponentManager->RemoveComponent<T>(entity);
 
 			auto signature = m_EntityManager->GetSignature(entity);
-			signature.set(m_ComponentManager->GetComponentType<T>(), false);
+			signature.set(id, false);
 			m_EntityManager->SetSignature(entity, signature);
 			//update systems
 			m_SystemManager->EntitySignatureChanged(entity, signature);
@@ -119,34 +112,21 @@ public:
 	}
 
 	template<typename T>
-	T& GetComponent(ECS_Entity entity)
+	T& GetComponent(ECS_Entity entity, uint32_t id)
 	{
-		return m_ComponentManager->GetComponent<T>(entity);
+		return m_ComponentManager->GetComponent<T>(entity, id);
 	}
-
-	template<typename T>
-	ComponentType GetComponentType()
-	{
-		return m_ComponentManager->GetComponentType<T>();
-	}
-
 
 	// System methods
 	template<typename T>
 	std::shared_ptr<T> RegisterSystem()
 	{
-		return m_SystemManager->RegisterSystem<T>(*this);
+		return m_SystemManager->RegisterSystem<T>(this);
 	}
 
 	template<typename T>
-	void UnregisterSystem()
+	void SetSystemSignature(Signature signature, uint32_t systemId)
 	{
-		return m_SystemManager->UnregisterSystem<T>();
-	}
-
-	template<typename T>
-	void SetSystemSignature(Signature signature)
-	{
-		m_SystemManager->SetSignature<T>(signature);
+		m_SystemManager->SetSignature<T>(signature, systemId);
 	}
 };
